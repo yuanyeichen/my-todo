@@ -26,6 +26,8 @@
             --accent-orange: #ff9500;
             --accent-blue: #007aff;
             --accent-red: #ff3b30;
+            --accent-yellow: #ffcc00;
+            --accent-purple: #af52de;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -50,6 +52,8 @@
                 --accent-orange: #ff9f0a;
                 --accent-blue: #0a84ff;
                 --accent-red: #ff453a;
+                --accent-yellow: #ffd60a;
+                --accent-purple: #bf5af2;
             }
         }
 
@@ -74,6 +78,8 @@
             --accent-orange: #ff9f0a;
             --accent-blue: #0a84ff;
             --accent-red: #ff453a;
+            --accent-yellow: #ffd60a;
+            --accent-purple: #bf5af2;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -128,6 +134,8 @@
         .icon-today { background: var(--accent-blue); }
         .icon-done { background: #34c759; }
         .icon-undone { background: var(--accent-orange); }
+        .icon-important { background: var(--accent-yellow); color: #1c1c1e; }
+        .icon-scheduled { background: var(--accent-purple); }
         .nav-count {
             margin-left: auto;
             font-size: 13px;
@@ -231,7 +239,7 @@
         .task-item {
             display: flex;
             align-items: center;
-            padding: 14px 18px;
+            padding: 12px 18px;
             border-bottom: 1px solid var(--divider);
             transition: background 0.15s;
             animation: slideIn 0.25s ease both;
@@ -278,8 +286,14 @@
             text-decoration: line-through;
         }
 
-        .task-text {
+        .task-content {
             flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        .task-text {
             font-size: 15.5px;
             font-weight: 500;
             color: var(--text-primary);
@@ -288,6 +302,9 @@
             padding: 2px 4px;
             margin: -2px -4px;
             border-radius: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .task-text:hover { background: var(--hover-bg); }
         .task-text[contenteditable="true"] {
@@ -295,13 +312,47 @@
             outline: 2px solid var(--accent-blue);
             text-decoration: none !important;
             color: var(--text-primary) !important;
+            white-space: normal;
         }
-        .task-date {
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 12px;
             color: var(--text-muted);
-            margin-right: 12px;
-            flex-shrink: 0;
+            padding-left: 4px;
         }
+        .task-date {
+            color: var(--text-muted);
+        }
+        .task-date.overdue {
+            color: var(--accent-red);
+            font-weight: 600;
+        }
+        .task-flag {
+            color: var(--accent-yellow);
+            font-size: 11px;
+        }
+
+        .flag-btn {
+            width: 28px; height: 28px;
+            border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s, color 0.2s;
+            flex-shrink: 0;
+            margin-right: 4px;
+            font-size: 16px;
+        }
+        .task-item:hover .flag-btn { opacity: 1; }
+        .flag-btn:hover { background: var(--hover-bg); }
+        .flag-btn.active {
+            color: var(--accent-yellow);
+            opacity: 1;
+        }
+
         .delete-btn {
             width: 28px; height: 28px;
             border-radius: 7px;
@@ -364,7 +415,7 @@
             font-size: 18px; font-weight: 300;
             flex-shrink: 0;
         }
-        .input-bar input {
+        .input-bar input[type="text"] {
             flex: 1;
             border: none;
             background: transparent;
@@ -372,8 +423,23 @@
             font-weight: 500;
             outline: none;
             color: var(--text-primary);
+            min-width: 0;
         }
-        .input-bar input::placeholder { color: var(--text-muted); }
+        .input-bar input[type="text"]::placeholder { color: var(--text-muted); }
+        .input-bar input[type="date"] {
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            outline: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .input-bar input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.4);
+            cursor: pointer;
+        }
         .input-bar button {
             padding: 7px 16px;
             background: var(--accent-blue);
@@ -384,6 +450,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: background 0.2s;
+            flex-shrink: 0;
         }
         .input-bar button:hover { background: #0051d5; }
 
@@ -408,6 +475,16 @@
             <div class="nav-icon icon-today">&#9733;</div>
             <span>今天</span>
             <span class="nav-count" id="count-today">0</span>
+        </div>
+        <div class="nav-item" data-filter="scheduled">
+            <div class="nav-icon icon-scheduled">&#128197;</div>
+            <span>已计划</span>
+            <span class="nav-count" id="count-scheduled">0</span>
+        </div>
+        <div class="nav-item" data-filter="important">
+            <div class="nav-icon icon-important">&#9733;</div>
+            <span>重要</span>
+            <span class="nav-count" id="count-important">0</span>
         </div>
         <div class="nav-item" data-filter="undone">
             <div class="nav-icon icon-undone">&#9675;</div>
@@ -450,6 +527,7 @@
         <div class="input-bar">
             <div class="plus-icon">+</div>
             <input type="text" id="input" placeholder="添加新任务…">
+            <input type="date" id="due-date">
             <button id="btn">添加</button>
         </div>
     </main>
@@ -462,6 +540,8 @@
         const titles = {
             all: '全部',
             today: '今天',
+            scheduled: '已计划',
+            important: '重要',
             undone: '未完成',
             done: '已完成'
         };
@@ -511,14 +591,29 @@
             return `${d.getMonth()+1}月${d.getDate()}日`;
         }
 
+        function isOverdue(dateStr) {
+            if (!dateStr) return false;
+            const d = new Date(dateStr);
+            d.setHours(23, 59, 59, 999);
+            return d < new Date();
+        }
+
+        function isToday(dateStr) {
+            if (!dateStr) return false;
+            const d = new Date(dateStr);
+            const now = new Date();
+            return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }
+
         function updateCounts() {
             const now = new Date();
-            const todayTasks = tasks.filter(t => {
+            document.getElementById('count-all').textContent = tasks.length;
+            document.getElementById('count-today').textContent = tasks.filter(t => {
                 const d = new Date(t.createdAt);
                 return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-            });
-            document.getElementById('count-all').textContent = tasks.length;
-            document.getElementById('count-today').textContent = todayTasks.length;
+            }).length;
+            document.getElementById('count-scheduled').textContent = tasks.filter(t => t.dueDate).length;
+            document.getElementById('count-important').textContent = tasks.filter(t => t.important).length;
             document.getElementById('count-undone').textContent = tasks.filter(t => !t.completed).length;
             document.getElementById('count-done').textContent = tasks.filter(t => t.completed).length;
         }
@@ -534,6 +629,8 @@
                     const d = new Date(t.createdAt);
                     return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
                 }
+                if (currentFilter === 'scheduled') return !!t.dueDate;
+                if (currentFilter === 'important') return t.important;
                 return true;
             }).filter(t => t.text.toLowerCase().includes(searchQuery.toLowerCase()));
         }
@@ -543,7 +640,11 @@
             list.innerHTML = '';
 
             let filtered = getFilteredTasks();
-            filtered.sort((a, b) => a.completed - b.completed);
+            filtered.sort((a, b) => {
+                // 重要优先，其次未完成优先
+                if (a.important !== b.important) return b.important - a.important;
+                return a.completed - b.completed;
+            });
 
             if (filtered.length === 0) {
                 document.getElementById('empty-state').style.display = 'flex';
@@ -562,6 +663,9 @@
                         saveTasks();
                         renderList();
                     });
+
+                    const content = document.createElement('div');
+                    content.className = 'task-content';
 
                     const text = document.createElement('div');
                     text.className = 'task-text';
@@ -596,9 +700,33 @@
                         }
                     });
 
-                    const date = document.createElement('div');
-                    date.className = 'task-date';
-                    date.textContent = formatDate(task.createdAt);
+                    const meta = document.createElement('div');
+                    meta.className = 'task-meta';
+                    if (task.dueDate) {
+                        const dateSpan = document.createElement('span');
+                        dateSpan.className = 'task-date' + (isOverdue(task.dueDate) && !task.completed ? ' overdue' : '');
+                        dateSpan.textContent = formatDate(task.dueDate);
+                        meta.appendChild(dateSpan);
+                    }
+                    if (task.important) {
+                        const flagSpan = document.createElement('span');
+                        flagSpan.className = 'task-flag';
+                        flagSpan.textContent = '★ 重要';
+                        meta.appendChild(flagSpan);
+                    }
+
+                    content.appendChild(text);
+                    if (meta.children.length) content.appendChild(meta);
+
+                    const flagBtn = document.createElement('div');
+                    flagBtn.className = 'flag-btn' + (task.important ? ' active' : '');
+                    flagBtn.innerHTML = task.important ? '&#9733;' : '&#9734;';
+                    flagBtn.title = task.important ? '取消标记' : '标记为重要';
+                    flagBtn.addEventListener('click', () => {
+                        task.important = !task.important;
+                        saveTasks();
+                        renderList();
+                    });
 
                     const del = document.createElement('div');
                     del.className = 'delete-btn';
@@ -610,8 +738,8 @@
                     });
 
                     li.appendChild(check);
-                    li.appendChild(text);
-                    li.appendChild(date);
+                    li.appendChild(content);
+                    li.appendChild(flagBtn);
                     li.appendChild(del);
                     list.appendChild(li);
                 });
@@ -638,10 +766,12 @@
         /* Add Task */
         function addTask() {
             const value = document.getElementById('input').value.trim();
+            const dueDate = document.getElementById('due-date').value || null;
             if (value) {
-                tasks.unshift({ text: value, completed: false, createdAt: new Date().toISOString() });
+                tasks.unshift({ text: value, completed: false, important: false, createdAt: new Date().toISOString(), dueDate });
                 saveTasks();
                 document.getElementById('input').value = '';
+                document.getElementById('due-date').value = '';
                 renderList();
             }
         }
