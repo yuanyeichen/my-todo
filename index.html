@@ -772,6 +772,17 @@
                 saveTasks();
                 document.getElementById('input').value = '';
                 document.getElementById('due-date').value = '';
+
+                // 清空搜索并重置到全部视图，确保新任务可见
+                document.getElementById('search').value = '';
+                searchQuery = '';
+                if (currentFilter !== 'all') {
+                    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                    document.querySelector('.nav-item[data-filter="all"]').classList.add('active');
+                    currentFilter = 'all';
+                    document.getElementById('page-title').textContent = titles['all'];
+                }
+
                 renderList();
             }
         }
