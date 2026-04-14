@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ff9500">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%23ff9500' width='192' height='192' rx='40'/%3E%3Ctext x='96' y='130' font-size='110' text-anchor='middle' fill='%23fff'%3E✓%3C/text%3E%3C/svg%3E">
     <title>提醒事项</title>
     <style>
         :root {
@@ -147,8 +150,28 @@
         }
         .nav-item.active .nav-count { background: var(--active-bg); color: var(--text-tertiary); }
 
-        .theme-toggle {
+        .data-actions {
             margin-top: auto;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 13px;
+        }
+        .data-actions button {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary);
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        .data-actions button:hover { background: var(--hover-bg); }
+
+        .theme-toggle {
             padding: 10px 12px;
             border-radius: 10px;
             cursor: pointer;
@@ -241,8 +264,18 @@
             align-items: center;
             padding: 12px 18px;
             border-bottom: 1px solid var(--divider);
-            transition: background 0.15s;
+            transition: background 0.15s, transform 0.15s, opacity 0.15s;
             animation: slideIn 0.25s ease both;
+            cursor: grab;
+        }
+        .task-item.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+            cursor: grabbing;
+            background: var(--active-bg);
+        }
+        .task-item.drag-over {
+            border-top: 2px solid var(--accent-blue);
         }
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(8px); }
@@ -250,6 +283,27 @@
         }
         .task-item:last-child { border-bottom: none; }
         .task-item:hover { background: var(--hover-bg); }
+
+        .select-box {
+            width: 18px; height: 18px;
+            border: 2px solid #c7c7cc;
+            border-radius: 5px;
+            margin-right: 12px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .select-box.selected {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+        .select-box.selected::after {
+            content: '✓';
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+        }
 
         /* Custom Checkbox */
         .check-circle {
@@ -389,6 +443,81 @@
         .empty-title { font-size: 18px; font-weight: 600; color: var(--text-tertiary); margin-bottom: 4px; }
         .empty-desc { font-size: 14px; }
 
+        /* Batch Toolbar */
+        .batch-bar {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(40,40,48,0.95);
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        .batch-bar.active {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .batch-bar button {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .batch-bar button:hover { background: rgba(255,255,255,0.25); }
+        .batch-bar .batch-count { font-weight: 700; margin-right: 4px; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-60px);
+            background: rgba(40,40,48,0.95);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .toast.active {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .toast button {
+            background: transparent;
+            border: none;
+            color: var(--accent-blue);
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
         /* Bottom Input Bar */
         .input-bar {
             position: absolute;
@@ -454,12 +583,28 @@
         }
         .input-bar button:hover { background: #0051d5; }
 
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            pointer-events: none;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            animation: confetti-fall 0.8s ease-out forwards;
+            z-index: 300;
+        }
+        @keyframes confetti-fall {
+            0% { transform: translate(0,0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0.5); opacity: 0; }
+        }
+
         @media (max-width: 820px) {
             .sidebar { display: none; }
             .main { padding: 24px 20px 90px; }
             .input-bar { left: 20px; right: 20px; bottom: 20px; }
             .search-box { max-width: none; width: 100%; margin-top: 10px; }
             .header-top { flex-direction: column; align-items: flex-start; gap: 4px; }
+            .batch-bar { left: 20px; right: 20px; transform: translateY(100px); width: auto; justify-content: space-between; }
+            .batch-bar.active { transform: translateY(0); left: 20px; right: 20px; }
         }
     </style>
 </head>
@@ -497,6 +642,12 @@
             <span class="nav-count" id="count-done">0</span>
         </div>
 
+        <div class="data-actions">
+            <button id="btn-export">📤 导出数据</button>
+            <button id="btn-import">📥 导入数据</button>
+            <input type="file" id="file-import" accept=".json" style="display:none">
+        </div>
+
         <div class="theme-toggle" id="theme-toggle">
             <span class="theme-icon" id="theme-icon">&#127769;</span>
             <span id="theme-text">切换深色模式</span>
@@ -509,7 +660,7 @@
                 <h1 id="page-title">全部</h1>
                 <div class="search-box">
                     <span class="search-icon">&#128269;</span>
-                    <input type="text" id="search" placeholder="搜索任务…">
+                    <input type="text" id="search" placeholder="搜索任务… (Cmd+K)">
                 </div>
             </div>
             <div class="subtitle" id="page-subtitle">管理你的日常任务</div>
@@ -520,7 +671,7 @@
             <div class="empty-state" id="empty-state" style="display:none;">
                 <div class="empty-icon">&#128466;</div>
                 <div class="empty-title">暂无任务</div>
-                <div class="empty-desc">在下方添加一项新任务吧</div>
+                <div class="empty-desc">按 N 键快速添加，或点击下方输入框</div>
             </div>
         </div>
 
@@ -532,10 +683,32 @@
         </div>
     </main>
 
+    <div class="batch-bar" id="batch-bar">
+        <span><span class="batch-count" id="batch-count">0</span> 项已选择</span>
+        <div style="display:flex;gap:8px;">
+            <button id="batch-complete">标记完成</button>
+            <button id="batch-delete" style="color:#ff453a">删除</button>
+            <button id="batch-clear">取消</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <span id="toast-msg">任务已删除</span>
+        <button id="toast-undo">撤销</button>
+    </div>
+
     <script>
+        /* PWA */
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+
         let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
         let currentFilter = 'all';
         let searchQuery = '';
+        let selectedIds = new Set();
+        let undoStack = [];
+        let undoTimer = null;
 
         const titles = {
             all: '全部',
@@ -598,13 +771,6 @@
             return d < new Date();
         }
 
-        function isToday(dateStr) {
-            if (!dateStr) return false;
-            const d = new Date(dateStr);
-            const now = new Date();
-            return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-        }
-
         function updateCounts() {
             const now = new Date();
             document.getElementById('count-all').textContent = tasks.length;
@@ -616,6 +782,24 @@
             document.getElementById('count-important').textContent = tasks.filter(t => t.important).length;
             document.getElementById('count-undone').textContent = tasks.filter(t => !t.completed).length;
             document.getElementById('count-done').textContent = tasks.filter(t => t.completed).length;
+        }
+
+        /* Confetti */
+        function confetti(x, y) {
+            const colors = ['#ff9500', '#007aff', '#34c759', '#ff3b30', '#af52de', '#ffcc00'];
+            for (let i = 0; i < 18; i++) {
+                const el = document.createElement('div');
+                el.className = 'confetti';
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
+                el.style.background = colors[Math.floor(Math.random() * colors.length)];
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 40 + Math.random() * 60;
+                el.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+                el.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 800);
+            }
         }
 
         /* Render */
@@ -641,26 +825,74 @@
 
             let filtered = getFilteredTasks();
             filtered.sort((a, b) => {
-                // 重要优先，其次未完成优先
                 if (a.important !== b.important) return b.important - a.important;
                 return a.completed - b.completed;
             });
+
+            updateBatchBar();
 
             if (filtered.length === 0) {
                 document.getElementById('empty-state').style.display = 'flex';
             } else {
                 document.getElementById('empty-state').style.display = 'none';
-                filtered.forEach(task => {
+                filtered.forEach((task, idx) => {
                     const realIndex = tasks.indexOf(task);
                     const li = document.createElement('li');
                     li.className = 'task-item' + (task.completed ? ' completed' : '');
+                    li.draggable = true;
+                    li.dataset.id = task.id || task.text + task.createdAt;
+                    if (!task.id) task.id = li.dataset.id;
+
+                    /* Drag & Drop */
+                    li.addEventListener('dragstart', e => {
+                        li.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', task.id);
+                    });
+                    li.addEventListener('dragend', () => {
+                        li.classList.remove('dragging');
+                        document.querySelectorAll('.task-item').forEach(i => i.classList.remove('drag-over'));
+                    });
+                    li.addEventListener('dragover', e => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        li.classList.add('drag-over');
+                    });
+                    li.addEventListener('dragleave', () => {
+                        li.classList.remove('drag-over');
+                    });
+                    li.addEventListener('drop', e => {
+                        e.preventDefault();
+                        li.classList.remove('drag-over');
+                        const draggedId = e.dataTransfer.getData('text/plain');
+                        if (draggedId === task.id) return;
+                        const fromIndex = tasks.findIndex(t => t.id === draggedId);
+                        const toIndex = tasks.findIndex(t => t.id === task.id);
+                        if (fromIndex < 0 || toIndex < 0) return;
+                        const [moved] = tasks.splice(fromIndex, 1);
+                        tasks.splice(toIndex, 0, moved);
+                        saveTasks();
+                        renderList();
+                    });
+
+                    const selectBox = document.createElement('div');
+                    selectBox.className = 'select-box' + (selectedIds.has(task.id) ? ' selected' : '');
+                    selectBox.addEventListener('click', e => {
+                        e.stopPropagation();
+                        if (selectedIds.has(task.id)) selectedIds.delete(task.id);
+                        else selectedIds.add(task.id);
+                        renderList();
+                    });
 
                     const check = document.createElement('div');
                     check.className = 'check-circle';
                     check.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-                    check.addEventListener('click', () => {
+                    check.addEventListener('click', e => {
+                        const rect = check.getBoundingClientRect();
                         task.completed = !task.completed;
+                        if (task.completed) confetti(rect.left + 11, rect.top + 11);
                         saveTasks();
+                        selectedIds.delete(task.id);
                         renderList();
                     });
 
@@ -683,21 +915,13 @@
                     });
                     text.addEventListener('blur', () => {
                         const newText = text.textContent.trim();
-                        if (newText) {
-                            task.text = newText;
-                            saveTasks();
-                        }
+                        if (newText) { task.text = newText; saveTasks(); }
                         text.textContent = task.text;
                         text.contentEditable = false;
                     });
                     text.addEventListener('keydown', e => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            text.blur();
-                        } else if (e.key === 'Escape') {
-                            text.textContent = task.text;
-                            text.contentEditable = false;
-                        }
+                        if (e.key === 'Enter') { e.preventDefault(); text.blur(); }
+                        else if (e.key === 'Escape') { text.textContent = task.text; text.contentEditable = false; }
                     });
 
                     const meta = document.createElement('div');
@@ -722,7 +946,8 @@
                     flagBtn.className = 'flag-btn' + (task.important ? ' active' : '');
                     flagBtn.innerHTML = task.important ? '&#9733;' : '&#9734;';
                     flagBtn.title = task.important ? '取消标记' : '标记为重要';
-                    flagBtn.addEventListener('click', () => {
+                    flagBtn.addEventListener('click', e => {
+                        e.stopPropagation();
                         task.important = !task.important;
                         saveTasks();
                         renderList();
@@ -731,12 +956,12 @@
                     const del = document.createElement('div');
                     del.className = 'delete-btn';
                     del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-                    del.addEventListener('click', () => {
-                        tasks.splice(realIndex, 1);
-                        saveTasks();
-                        renderList();
+                    del.addEventListener('click', e => {
+                        e.stopPropagation();
+                        deleteWithUndo([task]);
                     });
 
+                    li.appendChild(selectBox);
                     li.appendChild(check);
                     li.appendChild(content);
                     li.appendChild(flagBtn);
@@ -746,6 +971,62 @@
             }
         }
 
+        /* Delete & Undo */
+        function deleteWithUndo(items) {
+            const ids = items.map(t => t.id);
+            undoStack = items.map(t => ({ task: {...t}, index: tasks.findIndex(x => x.id === t.id) }));
+            tasks = tasks.filter(t => !ids.includes(t.id));
+            selectedIds.clear();
+            saveTasks();
+            renderList();
+            showToast(`已删除 ${items.length} 项任务`, () => {
+                undoStack.forEach(u => {
+                    if (u.index >= 0 && u.index <= tasks.length) tasks.splice(u.index, 0, u.task);
+                    else tasks.push(u.task);
+                });
+                selectedIds.clear();
+                saveTasks();
+                renderList();
+                hideToast();
+            });
+        }
+
+        function showToast(msg, onUndo) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.add('active');
+            const btn = document.getElementById('toast-undo');
+            btn.onclick = () => { if (onUndo) onUndo(); };
+            if (undoTimer) clearTimeout(undoTimer);
+            undoTimer = setTimeout(hideToast, 4000);
+        }
+        function hideToast() {
+            document.getElementById('toast').classList.remove('active');
+        }
+
+        /* Batch */
+        function updateBatchBar() {
+            const bar = document.getElementById('batch-bar');
+            const count = selectedIds.size;
+            document.getElementById('batch-count').textContent = count;
+            if (count > 0) bar.classList.add('active');
+            else bar.classList.remove('active');
+        }
+        document.getElementById('batch-complete').addEventListener('click', () => {
+            let changed = false;
+            tasks.forEach(t => {
+                if (selectedIds.has(t.id)) { t.completed = true; changed = true; }
+            });
+            if (changed) { selectedIds.clear(); saveTasks(); renderList(); }
+        });
+        document.getElementById('batch-delete').addEventListener('click', () => {
+            const toDelete = tasks.filter(t => selectedIds.has(t.id));
+            if (toDelete.length) deleteWithUndo(toDelete);
+        });
+        document.getElementById('batch-clear').addEventListener('click', () => {
+            selectedIds.clear(); renderList();
+        });
+
         /* Nav */
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', () => {
@@ -753,28 +1034,30 @@
                 item.classList.add('active');
                 currentFilter = item.dataset.filter;
                 document.getElementById('page-title').textContent = titles[currentFilter];
+                selectedIds.clear();
                 renderList();
             });
         });
 
         /* Search */
-        document.getElementById('search').addEventListener('input', e => {
+        const searchInput = document.getElementById('search');
+        searchInput.addEventListener('input', e => {
             searchQuery = e.target.value.trim();
             renderList();
         });
 
         /* Add Task */
+        const taskInput = document.getElementById('input');
         function addTask() {
-            const value = document.getElementById('input').value.trim();
+            const value = taskInput.value.trim();
             const dueDate = document.getElementById('due-date').value || null;
             if (value) {
-                tasks.unshift({ text: value, completed: false, important: false, createdAt: new Date().toISOString(), dueDate });
+                const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+                tasks.unshift({ id, text: value, completed: false, important: false, createdAt: new Date().toISOString(), dueDate });
                 saveTasks();
-                document.getElementById('input').value = '';
+                taskInput.value = '';
                 document.getElementById('due-date').value = '';
-
-                // 清空搜索并重置到全部视图，确保新任务可见
-                document.getElementById('search').value = '';
+                searchInput.value = '';
                 searchQuery = '';
                 if (currentFilter !== 'all') {
                     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -782,13 +1065,74 @@
                     currentFilter = 'all';
                     document.getElementById('page-title').textContent = titles['all'];
                 }
-
                 renderList();
             }
         }
         document.getElementById('btn').addEventListener('click', addTask);
-        document.getElementById('input').addEventListener('keydown', e => {
+        taskInput.addEventListener('keydown', e => {
             if (e.key === 'Enter') addTask();
+        });
+
+        /* Shortcuts */
+        document.addEventListener('keydown', e => {
+            const tag = document.activeElement?.tagName;
+            const isTyping = tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable;
+            if (e.metaKey || e.ctrlKey) {
+                if (e.key.toLowerCase() === 'k') {
+                    e.preventDefault();
+                    searchInput.focus();
+                    searchInput.select();
+                }
+                return;
+            }
+            if (isTyping) {
+                if (e.key === 'Escape') document.activeElement.blur();
+                return;
+            }
+            if (e.key.toLowerCase() === 'n') {
+                e.preventDefault();
+                taskInput.focus();
+            } else if (e.key === 'Escape') {
+                selectedIds.clear(); renderList(); hideToast();
+            }
+        });
+
+        /* Import / Export */
+        document.getElementById('btn-export').addEventListener('click', () => {
+            const data = JSON.stringify(tasks, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `提醒事项备份_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+        document.getElementById('btn-import').addEventListener('click', () => {
+            document.getElementById('file-import').click();
+        });
+        document.getElementById('file-import').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                try {
+                    const imported = JSON.parse(ev.target.result);
+                    if (Array.isArray(imported)) {
+                        undoStack = [{ task: null, index: -1, prev: tasks }];
+                        tasks = imported.map(t => ({ ...t, id: t.id || (Date.now().toString(36)+Math.random().toString(36).slice(2)) }));
+                        saveTasks();
+                        renderList();
+                        showToast('数据导入成功', null);
+                    } else {
+                        showToast('文件格式不正确', null);
+                    }
+                } catch {
+                    showToast('导入失败：无法解析文件', null);
+                }
+                e.target.value = '';
+            };
+            reader.readAsText(file);
         });
 
         /* Init */
