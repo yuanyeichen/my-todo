@@ -446,6 +446,66 @@
         .empty-title { font-size: 18px; font-weight: 600; color: var(--text-tertiary); margin-bottom: 4px; }
         .empty-desc { font-size: 14px; }
 
+        /* iOS Install Banner */
+        .ios-install-banner {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(200px);
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            color: #1c1c1e;
+            padding: 12px 18px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s ease;
+            z-index: 150;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 90vw;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .ios-install-banner.active {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .ios-install-banner button {
+            background: rgba(0,0,0,0.06);
+            border: none;
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            color: #555;
+            display: flex; align-items: center; justify-content: center;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not(.force-light) .ios-install-banner {
+                background: rgba(40,40,48,0.95);
+                color: #fff;
+                border-color: rgba(255,255,255,0.08);
+            }
+            :root:not(.force-light) .ios-install-banner button {
+                background: rgba(255,255,255,0.1);
+                color: #aaa;
+            }
+        }
+        :root.force-dark .ios-install-banner {
+            background: rgba(40,40,48,0.95);
+            color: #fff;
+            border-color: rgba(255,255,255,0.08);
+        }
+        :root.force-dark .ios-install-banner button {
+            background: rgba(255,255,255,0.1);
+            color: #aaa;
+        }
+
         /* Batch Toolbar */
         .batch-bar {
             position: fixed;
@@ -685,6 +745,11 @@
             <button id="btn">添加</button>
         </div>
     </main>
+
+    <div class="ios-install-banner" id="ios-banner">
+        <span>📲 点击底部 <b>分享按钮 ⬆️</b>，然后选择 <b>"添加到主屏幕"</b></span>
+        <button id="ios-banner-close">✕</button>
+    </div>
 
     <div class="batch-bar" id="batch-bar">
         <span><span class="batch-count" id="batch-count">0</span> 项已选择</span>
@@ -1136,6 +1201,22 @@
                 e.target.value = '';
             };
             reader.readAsText(file);
+        });
+
+        /* iOS Install Banner */
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isStandalone = window.navigator.standalone === true;
+        const isSafari = /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|QQ|MicroMessenger|UCBrowser|baiduboxapp/.test(navigator.userAgent);
+        const iosBanner = document.getElementById('ios-banner');
+        if (isIOS && !isStandalone && isSafari) {
+            const dismissed = sessionStorage.getItem('iosBannerDismissed');
+            if (!dismissed) {
+                setTimeout(() => iosBanner.classList.add('active'), 1500);
+            }
+        }
+        document.getElementById('ios-banner-close').addEventListener('click', () => {
+            iosBanner.classList.remove('active');
+            sessionStorage.setItem('iosBannerDismissed', '1');
         });
 
         /* Init */
